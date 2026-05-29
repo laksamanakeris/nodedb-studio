@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NodeDB Studio — UI prototype (3 variants)</title>
+<!--
+  THROWAWAY PROTOTYPE — do not ship.
+  Question: "What should the NodeDB Studio Phase 0 workspace look like?"
+  Three structurally different variants, switchable via ?variant=A|B|C,
+  the floating bottom bar, or the ← / → keys.
+    A — Console  : dark split-pane IDE (sidebar + editor over grid)
+    B — Focus    : light command-driven single column, no sidebar
+    C — Notebook : stacked query cells + right inspector
+  Same mock data in each so the comparison is fair. Read-only.
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+  }
+  .variant { height: 100vh; width: 100vw; }
+  .variant:not(.active) { display: none !important; }
+  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ─── Floating switcher bar (the prototype tool, not the design) ─── */
+  #switcher {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    z-index: 9999; display: flex; align-items: center; gap: 4px;
+    background: #111827; color: #fff; border-radius: 999px;
+    padding: 6px 8px; box-shadow: 0 8px 30px rgba(0,0,0,.35);
+    font: 500 13px/1 -apple-system, sans-serif; user-select: none;
+  }
+  #switcher button {
+    all: unset; cursor: pointer; width: 28px; height: 28px; border-radius: 999px;
+    display: grid; place-items: center; color: #fff; font-size: 15px;
+  }
+  #switcher button:hover { background: rgba(255,255,255,.14); }
+  #switcher .label { padding: 0 12px; white-space: nowrap; min-width: 168px; text-align: center; }
+  #switcher .label b { color: #fff; }
+  #switcher .label span { color: #9ca3af; }
+
+  /* ════════════════ VARIANT A — Console (dark IDE) ════════════════ */
+  .va { background: #0e1116; color: #c9d1d9; font-size: 13px;
+        display: grid; grid-template-rows: 40px 1fr 26px; grid-template-columns: 248px 1fr;
+        grid-template-areas: "top top" "side main" "status status"; }
+  .va-top { grid-area: top; display: flex; align-items: center; gap: 14px;
+            padding: 0 12px; background: #161b22; border-bottom: 1px solid #21262d; }
+  .va-top .brand { font-weight: 700; color: #fff; letter-spacing: .2px; }
+  .va-top .brand .dot { color: #4c8dff; }
+  .va-conn { margin-left: auto; display: flex; align-items: center; gap: 8px;
+             background: #0e1116; border: 1px solid #30363d; border-radius: 6px; padding: 4px 10px; }
+  .va-conn .ok { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; box-shadow: 0 0 6px #3fb950; }
+  .va-run { background: #238636; color: #fff; border: 0; border-radius: 6px; padding: 6px 14px;
+            font-weight: 600; cursor: pointer; }
+  .va-side { grid-area: side; background: #0c0f14; border-right: 1px solid #21262d; overflow: auto; }
+  .va-sec { padding: 10px 12px 4px; font-size: 10.5px; letter-spacing: .9px; text-transform: uppercase; color: #6e7681; }
+  .va-conns .row { display: flex; align-items: center; gap: 8px; padding: 6px 12px; cursor: pointer; }
+  .va-conns .row:hover { background: #161b22; }
+  .va-conns .row.sel { background: #132034; border-left: 2px solid #4c8dff; }
+  .va-conns .row .d { width: 7px; height: 7px; border-radius: 50%; background: #3fb950; }
+  .va-conns .row .d.off { background: #6e7681; }
+  .va-tree div { padding: 4px 12px 4px 22px; color: #adbac7; cursor: pointer; }
+  .va-tree div:hover { background: #161b22; }
+  .va-tree .grp { color: #6e7681; padding-left: 12px; }
+  .va-main { grid-area: main; display: grid; grid-template-rows: 42% 58%; min-height: 0; }
+  .va-editor { border-bottom: 1px solid #21262d; padding: 12px 14px; overflow: auto; line-height: 1.7; }
+  .va-grid-wrap { display: flex; flex-direction: column; min-height: 0; }
+  .va-tabs { display: flex; gap: 0; border-bottom: 1px solid #21262d; background: #0c0f14; }
+  .va-tabs .t { padding: 7px 14px; font-size: 12px; color: #8b949e; border-right: 1px solid #21262d; cursor: pointer; }
+  .va-tabs .t.on { color: #fff; background: #161b22; box-shadow: inset 0 -2px 0 #4c8dff; }
+  .va-tablescroll { overflow: auto; min-height: 0; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.grid th { position: sticky; top: 0; background: #161b22; color: #8b949e; text-align: left;
+                  font-weight: 600; padding: 7px 12px; border-bottom: 1px solid #30363d; white-space: nowrap; }
+  table.grid td { padding: 6px 12px; border-bottom: 1px solid #1b2027; white-space: nowrap; }
+  table.grid tr:hover td { background: #11161d; }
+  .va-status { grid-area: status; display: flex; align-items: center; gap: 14px; padding: 0 12px;
+               background: #161b22; border-top: 1px solid #21262d; font-size: 11.5px; color: #8b949e; }
+
+  /* shared cell helpers */
+  .v-null { color: #6e7681; font-style: italic; }
+  .v-vec { color: #79c0ff; }
+  .v-tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; margin-right: 4px; }
+  .kw { color: #ff7b72; } .str { color: #a5d6ff; } .fn { color: #d2a8ff; } .nm { color: #79c0ff; } .op { color: #ff7b72; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+           font-size: 11px; font-weight: 600; }
+
+  /* ════════════════ VARIANT B — Focus (light, command-driven) ════════════════ */
+  .vb { background: #f4f5f7; color: #1c2024; font-size: 14px; display: flex; flex-direction: column; }
+  .vb-top { height: 56px; display: flex; align-items: center; gap: 12px; padding: 0 22px;
+            background: rgba(255,255,255,.8); backdrop-filter: blur(8px); border-bottom: 1px solid #e6e8eb; }
+  .vb-top .brand { font-weight: 700; font-size: 15px; }
+  .vb-top .brand .dot { color: #5b5bd6; }
+  .vb-pill { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e0e2e6;
+             border-radius: 999px; padding: 6px 14px; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .vb-pill .d { width: 8px; height: 8px; border-radius: 50%; background: #30a46c; }
+  .vb-cmdk { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #8b8d98;
+             background: #fff; border: 1px solid #e0e2e6; border-radius: 10px; padding: 7px 12px; cursor: pointer; }
+  .vb-cmdk kbd { background: #f1f2f4; border: 1px solid #e0e2e6; border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+  .vb-caps { display: flex; gap: 5px; align-items: center; }
+  .vb-caps .c { width: 9px; height: 9px; border-radius: 50%; background: #5b5bd6; }
+  .vb-caps .c.off { background: #d7dae0; }
+  .vb-body { flex: 1; overflow: auto; display: flex; flex-direction: column; align-items: center; padding: 38px 24px 90px; }
+  .vb-stage { width: 100%; max-width: 880px; }
+  .vb-editor { background: #fff; border: 1px solid #e6e8eb; border-radius: 16px; padding: 22px 24px;
+               box-shadow: 0 6px 24px rgba(20,20,40,.06); }
+  .vb-editor .label { font-size: 12px; font-weight: 600; color: #8b8d98; letter-spacing: .4px; text-transform: uppercase; }
+  .vb-editor pre { margin: 12px 0 0; line-height: 1.8; font-size: 14px; }
+  .vb-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .vb-run { background: #5b5bd6; color: #fff; border: 0; border-radius: 10px; padding: 11px 22px;
+            font-weight: 600; font-size: 14px; cursor: pointer; }
+  .vb-run:hover { background: #5151c9; }
+  .vb-meta { color: #8b8d98; font-size: 13px; }
+  .vb-results { margin-top: 26px; background: #fff; border: 1px solid #e6e8eb; border-radius: 16px; overflow: hidden;
+                box-shadow: 0 6px 24px rgba(20,20,40,.05); }
+  .vb-results .head { display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef0f2; }
+  .vb-results .head h3 { margin: 0; font-size: 14px; }
+  .vb-results .head .pill { margin-left: auto; font-size: 12px; color: #5b5bd6; background: #efeffd;
+                            padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+  .vb table.grid th { background: #fbfbfc; color: #8b8d98; border-bottom: 1px solid #eef0f2; }
+  .vb table.grid td { border-bottom: 1px solid #f1f2f4; color: #1c2024; }
+  .vb table.grid tr:hover td { background: #fafaff; }
+  .vb .v-null { color: #b9bbc6; } .vb .v-vec { color: #5b5bd6; }
+  .vb-foot { text-align: center; color: #b1b4bd; font-size: 12px; margin-top: 22px; }
+
+  /* ════════════════ VARIANT C — Notebook (rail + cells + inspector) ════════════════ */
+  .vc { background: #faf9f7; color: #2b2a28; font-size: 13.5px;
+        display: grid; grid-template-columns: 60px 1fr 290px; height: 100vh; }
+  .vc-rail { background: #2b2a28; display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 14px 0; }
+  .vc-rail .logo { width: 30px; height: 30px; border-radius: 8px; background: #c2410c; color: #fff;
+                   display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+  .vc-rail .av { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+                 color: #d6d3cf; background: #3a3936; cursor: pointer; font-weight: 700; position: relative; }
+  .vc-rail .av.sel { background: #faf9f7; color: #2b2a28; }
+  .vc-rail .av.sel::before { content: ""; position: absolute; left: -14px; top: 7px; width: 3px; height: 20px;
+                             background: #c2410c; border-radius: 2px; }
+  .vc-rail .sp { flex: 1; }
+  .vc-main { overflow: auto; padding: 26px 34px 90px; }
+  .vc-main h1 { font-family: Georgia, "Times New Roman", serif; font-size: 22px; margin: 0 0 2px; }
+  .vc-main .sub { color: #8a857d; font-size: 13px; margin-bottom: 22px; }
+  .vc-cell { background: #fff; border: 1px solid #ece8e2; border-radius: 12px; margin-bottom: 18px;
+             box-shadow: 0 1px 3px rgba(80,60,40,.05); overflow: hidden; }
+  .vc-cell .chead { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #f1ede7;
+                    background: #fdfcfa; }
+  .vc-cell .cnum { font-family: Georgia, serif; color: #c2410c; font-weight: 700; }
+  .vc-cell .ctype { font-size: 11px; color: #a39d93; text-transform: uppercase; letter-spacing: .6px; }
+  .vc-cell .crun { margin-left: auto; background: #2b2a28; color: #fff; border: 0; border-radius: 7px;
+                   padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .vc-cell .cquery { padding: 14px 16px; line-height: 1.7; border-bottom: 1px solid #f4f0ea; }
+  .vc-cell .cmeta { padding: 7px 16px; font-size: 11.5px; color: #a39d93; background: #fdfcfa; }
+  .vc table.grid th { background: #fdfcfa; color: #a39d93; border-bottom: 1px solid #f1ede7; }
+  .vc table.grid td { border-bottom: 1px solid #f6f2ec; color: #2b2a28; }
+  .vc table.grid tr:hover td { background: #fffaf4; }
+  .vc .v-vec { color: #0f766e; } .vc .v-null { color: #c9c3b9; }
+  .vc-addcell { display: block; width: 100%; text-align: center; padding: 12px; border: 1px dashed #d8d2c8;
+                border-radius: 12px; color: #a39d93; background: transparent; cursor: pointer; font-size: 13px; }
+  .vc-insp { background: #fff; border-left: 1px solid #ece8e2; overflow: auto; padding: 22px 20px; }
+  .vc-insp h4 { margin: 0 0 4px; font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: #a39d93; }
+  .vc-insp .kv { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f4f0ea; font-size: 12.5px; }
+  .vc-insp .kv span:last-child { color: #57534e; }
+  .vc-insp .grp { margin-top: 22px; }
+  .vc-insp .schema div { padding: 4px 0 4px 14px; color: #57534e; cursor: pointer; border-left: 2px solid #f1ede7; }
+  .vc-insp .schema div:hover { border-left-color: #c2410c; color: #2b2a28; }
+
+  .tag-a { background:#172554; color:#93c5fd; } .tag-b { background:#052e2b; color:#5eead4; }
+  .tag-l { background:#eef0f2; color:#5b5bd6; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════ VARIANT A — Console ══════════════════════ -->
+<section class="variant va" data-variant="A">
+  <div class="va-top">
+    <div class="brand">NodeDB <span class="dot">●</span> Studio</div>
+    <div class="va-conn"><span class="ok"></span> local-lite <span style="color:#6e7681">▾</span></div>
+    <button class="va-run">▶ Run</button>
+  </div>
+
+  <aside class="va-side">
+    <div class="va-sec">Connections</div>
+    <div class="va-conns">
+      <div class="row sel"><span class="d"></span> local-lite</div>
+      <div class="row"><span class="d"></span> staging-origin</div>
+      <div class="row"><span class="d off"></span> prod-origin</div>
+    </div>
+    <div class="va-sec">Navigator</div>
+    <div class="va-tree">
+      <div class="grp">▾ Collections</div>
+      <div>▦ articles</div>
+      <div>▦ users</div>
+      <div>▦ events</div>
+      <div class="grp">▾ Engines</div>
+      <div>⬡ vector · graph · document</div>
+      <div>⬡ fts · columnar · timeseries</div>
+    </div>
+  </aside>
+
+  <main class="va-main">
+    <div class="va-editor mono">
+<span style="color:#6e7681">1</span>&nbsp;&nbsp;<span class="kw">SELECT</span> id, embedding <span class="op">&lt;-&gt;</span> $1 <span class="kw">AS</span> distance,<br>
+<span style="color:#6e7681">2</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;metadata<span class="op">-&gt;&gt;</span><span class="str">'title'</span> <span class="kw">AS</span> title, created_at, tags<br>
+<span style="color:#6e7681">3</span>&nbsp;&nbsp;<span class="kw">FROM</span> articles<br>
+<span style="color:#6e7681">4</span>&nbsp;&nbsp;<span class="kw">ORDER BY</span> distance<br>
+<span style="color:#6e7681">5</span>&nbsp;&nbsp;<span class="kw">LIMIT</span> <span class="nm">5</span>;
+    </div>
+    <div class="va-grid-wrap">
+      <div class="va-tabs">
+        <div class="t on">Results · 5 rows</div>
+        <div class="t">Messages</div>
+      </div>
+      <div class="va-tablescroll">
+        <table class="grid mono">
+          <thead><tr><th>id</th><th>distance</th><th>title</th><th>created_at</th><th>tags</th></tr></thead>
+          <tbody>
+            <tr><td>01HQ8…K3</td><td class="num">0.0182</td><td>Vector indexes explained</td><td>2026-05-21T09:14:22Z</td><td><span class="v-tag tag-a">hnsw</span><span class="v-tag tag-a">ann</span></td></tr>
+            <tr><td>01HQ7…M9</td><td class="num">0.0410</td><td>Graph traversal at scale</td><td>2026-05-19T17:02:10Z</td><td><span class="v-tag tag-a">csr</span><span class="v-tag tag-a">bfs</span></td></tr>
+            <tr><td>01HQ6…A1</td><td class="num">0.0733</td><td>CRDT sync internals</td><td>2026-05-18T11:48:55Z</td><td><span class="v-tag tag-a">loro</span></td></tr>
+            <tr><td>01HQ5…X7</td><td class="num">0.0951</td><td>Columnar compression: ALP &amp; FSST</td><td>2026-05-15T08:30:00Z</td><td><span class="v-tag tag-a">alp</span><span class="v-tag tag-a">fsst</span></td></tr>
+            <tr><td>01HQ4…B2</td><td class="num">0.1120</td><td>Timeseries ingest benchmark</td><td><span class="v-null">NULL</span></td><td><span class="v-tag tag-a">dns</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <div class="va-status">
+    <span>NodeDB Origin 0.1.0-dev</span>
+    <span>·</span>
+    <span><span class="badge" style="background:#132a17;color:#3fb950">vector</span> <span class="badge" style="background:#132a17;color:#3fb950">graph</span> <span class="badge" style="background:#132a17;color:#3fb950">document</span> <span class="badge" style="background:#132a17;color:#3fb950">fts</span> <span class="badge" style="background:#132a17;color:#3fb950">columnar</span> <span class="badge" style="background:#132a17;color:#3fb950">timeseries</span> <span class="badge" style="background:#1b2027;color:#6e7681">crdt</span> <span class="badge" style="background:#1b2027;color:#6e7681">spatial</span></span>
+    <span style="margin-left:auto">5 rows · 4.2 ms</span>
+  </div>
+</section>
+
+<!-- ══════════════════════ VARIANT B — Focus ══════════════════════ -->
+<section class="variant vb" data-variant="B">
+  <div class="vb-top">
+    <div class="brand">NodeDB<span class="dot">.</span>Studio</div>
+    <div class="vb-pill"><span class="d"></span> local-lite ▾</div>
+    <div class="vb-caps" title="capabilities">
+      <span class="c"></span><span class="c"></span><span class="c"></span><span class="c"></span>
+      <span class="c"></span><span class="c"></span><span class="c off"></span><span class="c off"></span>
+    </div>
+    <div class="vb-cmdk">Search collections, run actions <kbd>⌘K</kbd></div>
+  </div>
+
+  <div class="vb-body">
+    <div class="vb-stage">
+      <div class="vb-editor">
+        <div class="label">Query · articles</div>
+        <pre class="mono"><span class="kw" style="color:#cf3a8f">SELECT</span> id, embedding <span style="color:#cf3a8f">&lt;-&gt;</span> $1 <span class="kw" style="color:#cf3a8f">AS</span> distance,
+       metadata<span style="color:#cf3a8f">-&gt;&gt;</span><span style="color:#0a7b5b">'title'</span> <span class="kw" style="color:#cf3a8f">AS</span> title, created_at, tags
+<span class="kw" style="color:#cf3a8f">FROM</span> articles <span class="kw" style="color:#cf3a8f">ORDER BY</span> distance <span class="kw" style="color:#cf3a8f">LIMIT</span> <span style="color:#1d6fd6">5</span>;</pre>
+        <div class="vb-actions">
+          <button class="vb-run">Run query  ⌘↵</button>
+          <span class="vb-meta">5 rows · 4.2 ms · NodeDB Origin 0.1.0-dev</span>
+        </div>
+      </div>
+
+      <div class="vb-results">
+        <div class="head"><h3>Results</h3><div class="pill">5 rows</div></div>
+        <table class="grid mono">
+          <thead><tr><th>id</th><th>distance</th><th>title</th><th>created_at</th><th>tags</th></tr></thead>
+          <tbody>
+            <tr><td>01HQ8…K3</td><td class="num">0.0182</td><td>Vector indexes explained</td><td>2026-05-21T09:14:22Z</td><td><span class="v-tag tag-l">hnsw</span><span class="v-tag tag-l">ann</span></td></tr>
+            <tr><td>01HQ7…M9</td><td class="num">0.0410</td><td>Graph traversal at scale</td><td>2026-05-19T17:02:10Z</td><td><span class="v-tag tag-l">csr</span><span class="v-tag tag-l">bfs</span></td></tr>
+            <tr><td>01HQ6…A1</td><td class="num">0.0733</td><td>CRDT sync internals</td><td>2026-05-18T11:48:55Z</td><td><span class="v-tag tag-l">loro</span></td></tr>
+            <tr><td>01HQ5…X7</td><td class="num">0.0951</td><td>Columnar compression: ALP &amp; FSST</td><td>2026-05-15T08:30:00Z</td><td><span class="v-tag tag-l">alp</span><span class="v-tag tag-l">fsst</span></td></tr>
+            <tr><td>01HQ4…B2</td><td class="num">0.1120</td><td>Timeseries ingest benchmark</td><td><span class="v-null">NULL</span></td><td><span class="v-tag tag-l">dns</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="vb-foot">⌘K for connections, collections, and history · everything is one keystroke away</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ VARIANT C — Notebook ══════════════════════ -->
+<section class="variant vc" data-variant="C">
+  <nav class="vc-rail">
+    <div class="logo">N</div>
+    <div class="av sel" title="local-lite">L</div>
+    <div class="av" title="staging-origin">S</div>
+    <div class="av" title="prod-origin">P</div>
+    <div class="sp"></div>
+    <div class="av" title="add connection">+</div>
+  </nav>
+
+  <main class="vc-main">
+    <h1>local-lite · articles</h1>
+    <div class="sub">Notebook · 2 cells · NodeDB Origin 0.1.0-dev</div>
+
+    <div class="vc-cell">
+      <div class="chead"><span class="cnum">[1]</span><span class="ctype">vector search</span><button class="crun">▶ Run</button></div>
+      <div class="cquery mono"><span style="color:#9a3412">SELECT</span> id, embedding <span style="color:#9a3412">&lt;-&gt;</span> $1 <span style="color:#9a3412">AS</span> distance, metadata<span style="color:#9a3412">-&gt;&gt;</span><span style="color:#0f766e">'title'</span> <span style="color:#9a3412">AS</span> title<br><span style="color:#9a3412">FROM</span> articles <span style="color:#9a3412">ORDER BY</span> distance <span style="color:#9a3412">LIMIT</span> 3;</div>
+      <table class="grid mono">
+        <thead><tr><th>id</th><th>distance</th><th>title</th></tr></thead>
+        <tbody>
+          <tr><td>01HQ8…K3</td><td class="num">0.0182</td><td>Vector indexes explained</td></tr>
+          <tr><td>01HQ7…M9</td><td class="num">0.0410</td><td>Graph traversal at scale</td></tr>
+          <tr><td>01HQ6…A1</td><td class="num">0.0733</td><td>CRDT sync internals</td></tr>
+        </tbody>
+      </table>
+      <div class="cmeta">3 rows · 3.1 ms</div>
+    </div>
+
+    <div class="vc-cell">
+      <div class="chead"><span class="cnum">[2]</span><span class="ctype">graph traverse</span><button class="crun">▶ Run</button></div>
+      <div class="cquery mono"><span style="color:#9a3412">GRAPH TRAVERSE</span> <span style="color:#0f766e">FROM</span> <span style="color:#0f766e">'user:alice'</span> <span style="color:#9a3412">DEPTH</span> 2 <span style="color:#9a3412">IN</span> social;</div>
+      <table class="grid mono">
+        <thead><tr><th>from</th><th>to</th><th>label</th><th>depth</th></tr></thead>
+        <tbody>
+          <tr><td>user:alice</td><td>user:bob</td><td><span class="v-tag tag-b">KNOWS</span></td><td class="num">1</td></tr>
+          <tr><td>user:alice</td><td>user:carol</td><td><span class="v-tag tag-b">KNOWS</span></td><td class="num">1</td></tr>
+          <tr><td>user:bob</td><td>user:dave</td><td><span class="v-tag tag-b">FOLLOWS</span></td><td class="num">2</td></tr>
+        </tbody>
+      </table>
+      <div class="cmeta">3 edges · 4 nodes · 0.9 ms</div>
+    </div>
+
+    <button class="vc-addcell">+ New cell</button>
+  </main>
+
+  <aside class="vc-insp">
+    <h4>Connection</h4>
+    <div class="kv"><span>name</span><span>local-lite</span></div>
+    <div class="kv"><span>server</span><span>0.1.0-dev</span></div>
+    <div class="kv"><span>status</span><span style="color:#0f766e">● live</span></div>
+
+    <div class="grp">
+      <h4>Capabilities</h4>
+      <div class="kv"><span>vector</span><span style="color:#0f766e">✓</span></div>
+      <div class="kv"><span>graph</span><span style="color:#0f766e">✓</span></div>
+      <div class="kv"><span>document · fts</span><span style="color:#0f766e">✓</span></div>
+      <div class="kv"><span>columnar · timeseries</span><span style="color:#0f766e">✓</span></div>
+      <div class="kv"><span>crdt · spatial</span><span style="color:#c9c3b9">—</span></div>
+    </div>
+
+    <div class="grp schema">
+      <h4>Schema</h4>
+      <div>▦ articles</div>
+      <div>▦ users</div>
+      <div>▦ events</div>
+      <div>⬡ social (graph)</div>
+    </div>
+
+    <div class="grp">
+      <h4>Limits</h4>
+      <div class="kv"><span>max_top_k</span><span>1024</span></div>
+      <div class="kv"><span>max_vector_dim</span><span>2048</span></div>
+    </div>
+  </aside>
+</section>
+
+<!-- ─── Floating switcher ─── -->
+<div id="switcher">
+  <button id="prev" aria-label="previous variant">‹</button>
+  <div class="label"></div>
+  <button id="next" aria-label="next variant">›</button>
+</div>
+
+<script>
+  const VARIANTS = [
+    { key: "A", name: "Console" },
+    { key: "B", name: "Focus" },
+    { key: "C", name: "Notebook" },
+  ];
+  function current() {
+    const p = new URLSearchParams(location.search).get("variant");
+    const i = VARIANTS.findIndex(v => v.key === (p || "").toUpperCase());
+    return i === -1 ? 0 : i;
+  }
+  function render(i) {
+    const v = VARIANTS[i];
+    document.querySelectorAll(".variant").forEach(s =>
+      s.classList.toggle("active", s.dataset.variant === v.key));
+    document.querySelector("#switcher .label").innerHTML =
+      `<b>${v.key}</b> <span>— ${v.name}</span>`;
+    const u = new URL(location.href);
+    u.searchParams.set("variant", v.key);
+    history.replaceState(null, "", u);
+    document.title = `NodeDB Studio — ${v.key} ${v.name}`;
+  }
+  let idx = current();
+  render(idx);
+  const go = d => { idx = (idx + d + VARIANTS.length) % VARIANTS.length; render(idx); };
+  document.getElementById("next").onclick = () => go(1);
+  document.getElementById("prev").onclick = () => go(-1);
+  document.addEventListener("keydown", e => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (e.key === "ArrowRight") go(1);
+    if (e.key === "ArrowLeft") go(-1);
+  });
+</script>
+</body>
+</html>
