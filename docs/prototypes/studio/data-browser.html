@@ -4,87 +4,322 @@
 <link rel="stylesheet" href="studio.css">
 <script src="shell.js"></script>
 <style>
-  .db { display:grid; grid-template-columns:212px 1fr 300px; height:100%; min-height:0; }
+  .db { display:grid; grid-template-columns:212px 1fr 312px; height:100%; min-height:0; }
   .db-tree { background:var(--bg-side); border-right:1px solid var(--border); overflow:auto; padding:8px; }
-  .db-tree .g { padding:11px 8px 4px; font-size:10px; letter-spacing:.7px; text-transform:uppercase; color:var(--text-faint);
-     display:flex; align-items:center; gap:6px; }
+  .db-tree .g { padding:11px 8px 4px; font-size:10px; letter-spacing:.7px; text-transform:uppercase; color:var(--text-faint); display:flex; align-items:center; gap:6px; }
   .db-tree .c { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:6px; cursor:pointer; color:var(--text-dim); }
   .db-tree .c:hover { background:var(--row-hover); color:var(--text); }
   .db-tree .c.sel { background:var(--accent-soft); color:var(--accent-2); }
   .db-tree .c .n { margin-left:auto; font-size:10.5px; color:var(--text-faint); }
-  .db-main { display:grid; grid-template-rows:auto 1fr; min-height:0; min-width:0; }
-  .db-doc { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
-  .jsontree { font-family:var(--mono); font-size:12px; line-height:1.7; }
-  .jsontree .key { color:var(--accent-2); } .jsontree .s { color:#9ad27f; } .jsontree .n2 { color:#7cc7ff; }
+  .db-main { display:grid; grid-template-rows:auto auto 1fr auto; min-height:0; min-width:0; }
+  .db-side { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
+  .filterbar { display:flex; align-items:center; gap:7px; flex-wrap:wrap; padding:8px 14px; border-bottom:1px solid var(--border); background:var(--bg); }
+  .fb-lbl { font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.6px; }
+  .select.sm,.input.sm,.btn.sm { padding:4px 8px; font-size:11.5px; }
+  .input.sm { font-family:var(--mono); }
+  table.grid th { cursor:pointer; user-select:none; }
+  table.grid th .ar { color:var(--accent-2); margin-left:4px; }
+  .pager { display:flex; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid var(--border); font-size:11.5px; color:var(--text-dim); }
+  .pager .spacer { flex:1; }
+  .jsontree { font-family:var(--mono); font-size:12px; line-height:1.7; white-space:pre-wrap; }
+  .jsontree .key{color:var(--accent-2);} .jsontree .s{color:#9ad27f;} .jsontree .n2{color:#7cc7ff;}
   :root[data-theme="light"] .jsontree .s{color:#2f7d32;} :root[data-theme="light"] .jsontree .n2{color:#1d6fd6;}
-  .filterbar { display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid var(--border); }
-  .filterbar .input { flex:1; font-family:var(--mono); font-size:12px; }
+  .fld { margin-bottom:10px; } .fld label { display:block; font-size:11px; color:var(--text-dim); margin-bottom:3px; }
+  .fld .input { width:100%; }
+  .kvedit { display:grid; grid-template-columns:1fr 1fr auto; gap:6px; margin-bottom:6px; }
+  .colpop { position:absolute; right:14px; top:46px; z-index:5; background:var(--bg-elev); border:1px solid var(--border-2); border-radius:8px; box-shadow:var(--shadow); padding:8px; width:180px; }
+  .colpop label { display:flex; gap:8px; align-items:center; padding:5px 7px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .colpop label:hover { background:var(--row-hover); }
+  .readnote { margin:10px 0 0; }
 </style>
 </head>
 <body data-screen="data" data-title="Data Browser">
   <div class="db">
-    <aside class="db-tree">
-      <div class="g"><span class="eng eng-document"></span>Documents</div>
-      <div class="c sel">▦ articles <span class="n">1,284</span></div>
-      <div class="c">▦ users <span class="n">512</span></div>
-      <div class="g"><span class="eng eng-vector"></span>Vector</div>
-      <div class="c">⬡ embeddings <span class="n">48k</span></div>
-      <div class="g"><span class="eng eng-graph"></span>Graph</div>
-      <div class="c">⬡ social <span class="n">23k</span></div>
-      <div class="g"><span class="eng eng-kv"></span>Key-Value</div>
-      <div class="c">⬡ cache <span class="n">9.1k</span></div>
-      <div class="g"><span class="eng eng-timeseries"></span>Timeseries</div>
-      <div class="c">⬡ metrics <span class="n">2.4M</span></div>
-    </aside>
-
+    <aside class="db-tree" id="tree"></aside>
     <div class="db-main">
-      <div class="toolbar" style="border-bottom:0;padding-bottom:0">
-        <span class="eng eng-document" style="font-size:12.5px">articles · document</span>
-        <span class="spacer"></span>
-        <div class="row">
-          <span class="chip on">Table</span><span class="chip">JSON</span><span class="chip">Document</span>
-        </div>
-        <button class="btn sm">+ Add row</button>
-        <button class="btn sm ghost">⟳</button>
-      </div>
-      <div class="filterbar">
-        <span class="faint mono" style="font-size:12px">WHERE</span>
-        <input class="input" value="metadata->>'status' = 'published' AND created_at > now() - '7d'">
-        <button class="btn sm primary">Apply</button>
-      </div>
-      <div style="overflow:auto;min-height:0">
-        <table class="grid mono">
-          <thead><tr><th>id</th><th>title</th><th>status</th><th>author</th><th>views</th><th>created_at</th></tr></thead>
-          <tbody>
-            <tr class="sel"><td>01HQ8…K3</td><td>Vector indexes explained</td><td>published</td><td>user:alice</td><td class="num v-num">14,203</td><td>2026-05-21T09:14:22Z</td></tr>
-            <tr><td>01HQ7…M9</td><td>Graph traversal at scale</td><td>published</td><td>user:bob</td><td class="num v-num">8,910</td><td>2026-05-19T17:02:10Z</td></tr>
-            <tr><td>01HQ6…A1</td><td>CRDT sync internals</td><td>published</td><td>user:carol</td><td class="num v-num">5,221</td><td>2026-05-18T11:48:55Z</td></tr>
-            <tr><td>01HQ5…X7</td><td>Columnar compression</td><td>draft</td><td>user:alice</td><td class="num v-num">0</td><td>2026-05-15T08:30:00Z</td></tr>
-            <tr><td>01HQ3…F8</td><td>Spatial joins primer</td><td>published</td><td>user:dave</td><td class="num v-num">3,477</td><td>2026-05-12T22:05:41Z</td></tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="toolbar" id="bar" style="position:relative"></div>
+      <div class="filterbar" id="filter"></div>
+      <div id="gridwrap" style="overflow:auto;min-height:0"></div>
+      <div class="pager" id="pager"></div>
     </div>
-
-    <aside class="db-doc">
-      <div class="row" style="justify-content:space-between;margin-bottom:12px">
-        <b>Document</b>
-        <div class="row"><button class="btn sm">Edit</button><button class="btn sm ghost" style="color:var(--err)">Delete</button></div>
-      </div>
-      <div class="jsontree">{
-  <span class="key">"id"</span>: <span class="s">"01HQ8…K3"</span>,
-  <span class="key">"title"</span>: <span class="s">"Vector indexes explained"</span>,
-  <span class="key">"status"</span>: <span class="s">"published"</span>,
-  <span class="key">"author"</span>: <span class="s">"user:alice"</span>,
-  <span class="key">"views"</span>: <span class="n2">14203</span>,
-  <span class="key">"metadata"</span>: {
-    <span class="key">"tags"</span>: [<span class="s">"hnsw"</span>, <span class="s">"ann"</span>],
-    <span class="key">"reading_min"</span>: <span class="n2">7</span>
-  },
-  <span class="key">"embedding"</span>: <span class="v-vec">[0.12, 0.98, … +382]</span>,
-  <span class="key">"created_at"</span>: <span class="s">"2026-05-21T09:14:22Z"</span>
-}</div>
-      <p class="note" style="margin-top:14px">Editor adapts per engine: vector rows show the embedding + metadata editor; KV shows key/value; timeseries shows time/tags/value.</p>
-    </aside>
+    <aside class="db-side" id="side"></aside>
   </div>
+
+  <script>
+  (function(){
+    // ---------- helpers ----------
+    const tags = arr => arr.map(t=>`<span class="t">${t}</span>`).join("");
+    const num  = v => `<span class="num v-num">${typeof v==="number"?v.toLocaleString():v}</span>`;
+    const vec  = () => `<span class="v-vec">[0.12, 0.98, … +382]</span>`;
+    const NUL  = '<span class="v-null">NULL</span>';
+
+    // ---------- data ----------
+    const TREE = [
+      ["document","Documents",[["articles",1284],["users",512]]],
+      ["vector","Vector",[["embeddings","48k"]]],
+      ["graph","Graph",[["social","23k"]]],
+      ["kv","Key-Value",[["cache","9.1k"]]],
+      ["timeseries","Timeseries",[["metrics","2.4M"]]],
+    ];
+
+    // timeseries rows (generated — "more examples")
+    const tsRows = []; let t = Date.parse("2026-05-29T10:00:00Z");
+    const hosts=["api-1","api-2","db-0","db-1"], mets=["cpu","mem","qps","p95"];
+    for (let i=0;i<14;i++){ t-=15000;
+      tsRows.push([ new Date(t).toISOString().replace(".000",""), hosts[i%4], mets[i%4],
+        +(Math.random()*100).toFixed(2) ]); }
+
+    const DB = {
+      articles: { engine:"document",
+        cols:[{n:"id"},{n:"title"},{n:"status"},{n:"author"},{n:"views",cls:"num",fmt:num},{n:"created_at"}],
+        rows:[
+          ["01HQ8…K3","Vector indexes explained","published","user:alice",14203,"2026-05-21"],
+          ["01HQ7…M9","Graph traversal at scale","published","user:bob",8910,"2026-05-19"],
+          ["01HQ6…A1","CRDT sync internals","published","user:carol",5221,"2026-05-18"],
+          ["01HQ5…X7","Columnar compression","draft","user:alice",0,"2026-05-15"],
+          ["01HQ3…F8","Spatial joins primer","published","user:dave",3477,"2026-05-12"],
+          ["01HQ2…C4","FTS ranking with BM25","published","user:bob",2980,"2026-05-10"],
+          ["01HQ1…D2","Bitemporal queries","draft","user:carol",0,"2026-05-09"],
+          ["01HPZ…E1","Thread-per-core IO","published","user:dave",6611,"2026-05-07"],
+          ["01HPY…A9","MessagePack transport","published","user:alice",4120,"2026-05-05"],
+          ["01HPX…B7","HNSW vs IVF","published","user:bob",7740,"2026-05-03"],
+          ["01HPW…K0","Array engine basics","draft","user:dave",0,"2026-05-01"],
+          ["01HPV…M3","KV TTL semantics","published","user:carol",1890,"2026-04-29"],
+        ], filter:"document" },
+
+      users: { engine:"document",
+        cols:[{n:"id"},{n:"name"},{n:"role"},{n:"articles",cls:"num",fmt:num},{n:"joined"}],
+        rows:[
+          ["user:alice","Alice Tan","admin",6,"2026-01-04"],
+          ["user:bob","Bob Lee","editor",4,"2026-01-11"],
+          ["user:carol","Carol Ng","editor",3,"2026-02-02"],
+          ["user:dave","Dave Ong","author",4,"2026-02-20"],
+          ["user:erin","Erin Goh","viewer",0,"2026-03-15"],
+          ["user:frank","Frank Wee","viewer",0,"2026-04-01"],
+        ], filter:"document" },
+
+      embeddings: { engine:"vector",
+        cols:[{n:"id"},{n:"dim",cls:"num",fmt:num},{n:"metadata.topic"},{n:"source"},{n:"embedding",fmt:vec}],
+        rows:[
+          ["01HQ8…K3",384,"indexing","articles","x"],
+          ["01HQ7…M9",384,"graph","articles","x"],
+          ["01HQ6…A1",384,"sync","articles","x"],
+          ["01HQ5…X7",384,"storage","articles","x"],
+          ["01HQ3…F8",384,"spatial","articles","x"],
+          ["01HQ2…C4",384,"search","articles","x"],
+          ["01HPZ…E1",384,"runtime","articles","x"],
+          ["01HPY…A9",384,"transport","articles","x"],
+          ["01HPX…B7",384,"indexing","articles","x"],
+          ["01HPV…M3",384,"storage","articles","x"],
+        ], filter:"vector" },
+
+      social: { engine:"graph",
+        nodes:{ cols:[{n:"id"},{n:"label"},{n:"name"},{n:"degree",cls:"num",fmt:num},{n:"pagerank",cls:"num"}],
+          rows:[
+            ["user:alice","person","Alice Tan",6,0.142],
+            ["user:bob","person","Bob Lee",4,0.098],
+            ["user:carol","person","Carol Ng",3,0.081],
+            ["user:dave","person","Dave Ong",3,0.077],
+            ["user:erin","person","Erin Goh",2,0.043],
+            ["article:42","article","Vector indexes",1,0.031],
+            ["article:88","article","CRDT internals",1,0.028],
+          ]},
+        edges:{ cols:[{n:"from"},{n:"to"},{n:"label",fmt:v=>`<span class="t">${v}</span>`,cls:"tagcell"},{n:"weight",cls:"num",fmt:num},{n:"created"}],
+          rows:[
+            ["user:alice","user:bob","KNOWS",1.0,"2026-03-11"],
+            ["user:alice","user:carol","KNOWS",1.0,"2026-03-12"],
+            ["user:alice","user:dave","KNOWS",0.8,"2026-03-12"],
+            ["user:bob","user:erin","FOLLOWS",0.5,"2026-03-20"],
+            ["user:carol","user:erin","FOLLOWS",0.5,"2026-03-21"],
+            ["user:alice","article:42","WROTE",1.0,"2026-05-21"],
+            ["user:alice","article:88","WROTE",1.0,"2026-05-18"],
+            ["user:dave","user:carol","KNOWS",0.7,"2026-04-01"],
+            ["user:bob","user:dave","KNOWS",0.6,"2026-04-03"],
+            ["user:erin","article:42","FOLLOWS",0.4,"2026-05-22"],
+          ]},
+        filter:"graph" },
+
+      cache: { engine:"kv",
+        cols:[{n:"key"},{n:"value"},{n:"ttl"},{n:"size",cls:"num"}],
+        rows:[
+          ["session:01HQ…","{uid:alice,exp:…}","12m","248 B"],
+          ["session:01HR…","{uid:bob,exp:…}","8m","240 B"],
+          ["ratelimit:api-1","842","30s","8 B"],
+          ["ratelimit:api-2","119","30s","8 B"],
+          ["feature:newvec","true","∞",NUL],
+          ["lock:reindex","held@db-0","45s","32 B"],
+          ["cache:art:42",vec(),"5m","1.5 KB"],
+          ["cache:art:88","{…}","5m","1.1 KB"],
+          ["counter:views","2401883","∞","12 B"],
+          ["config:hnsw","{m:16,ef:200}","∞","64 B"],
+        ], filter:"kv" },
+
+      metrics: { engine:"timeseries",
+        cols:[{n:"ts"},{n:"host"},{n:"metric"},{n:"value",cls:"num",fmt:v=>num(v)}],
+        rows:tsRows, filter:"timeseries" },
+    };
+
+    // ---------- state ----------
+    let cur="articles", sub="nodes", sort={i:null,dir:1}, page=0, sel=0, mode="inspect", hidden=new Set();
+    const PAGE=8;
+
+    const def = ()=>DB[cur];
+    const cols = ()=> def().engine==="graph" ? def()[sub].cols : def().cols;
+    const rows = ()=> def().engine==="graph" ? def()[sub].rows : def().rows;
+
+    // ---------- tree ----------
+    function renderTree(){
+      const eIco = e=>`<span class="eng eng-${e}"></span>`;
+      document.getElementById("tree").innerHTML = TREE.map(([e,label,colls])=>
+        `<div class="g">${eIco(e)}${label}</div>`+
+        colls.map(([k,n])=>`<div class="c ${k===cur?"sel":""}" data-k="${k}">⬡ ${k} <span class="n">${n}</span></div>`).join("")
+      ).join("");
+      document.querySelectorAll("#tree .c").forEach(c=>c.onclick=()=>{
+        cur=c.dataset.k; sub="nodes"; sort={i:null,dir:1}; page=0; sel=0; mode="inspect"; hidden.clear(); renderAll();
+      });
+    }
+
+    // ---------- toolbar ----------
+    function renderBar(){
+      const e=def().engine;
+      let toggles="";
+      if(e==="document") toggles=`<span class="chip on">Table</span><span class="chip">JSON</span>`;
+      if(e==="graph") toggles=`<span class="chip ${sub==='nodes'?'on':''}" data-sub="nodes">Nodes</span><span class="chip ${sub==='edges'?'on':''}" data-sub="edges">Edges</span>`;
+      const addLbl = e==="timeseries" ? "Append point" : "Add row";
+      document.getElementById("bar").innerHTML =
+        `<span class="eng eng-${e}" style="font-size:12.5px">${cur} · ${e}${e==='graph'?' · '+sub:''}</span>
+         ${toggles}<span class="spacer"></span>
+         <button class="btn sm" id="addBtn">+ ${addLbl}</button>
+         <button class="btn sm ghost" id="colBtn">Columns ▾</button>
+         <button class="btn sm ghost">Export</button>
+         <button class="btn sm ghost">⟳</button>`;
+      document.querySelectorAll("#bar [data-sub]").forEach(c=>c.onclick=()=>{sub=c.dataset.sub;sort={i:null,dir:1};page=0;sel=0;renderAll();});
+      document.getElementById("addBtn").onclick=()=>{mode="add";renderSide();};
+      document.getElementById("colBtn").onclick=colPop;
+    }
+    function colPop(){
+      const old=document.getElementById("cp"); if(old){old.remove();return;}
+      const pop=document.createElement("div"); pop.className="colpop"; pop.id="cp";
+      pop.innerHTML=cols().map((c,i)=>`<label><input type="checkbox" data-i="${i}" ${hidden.has(i)?"":"checked"}> ${c.n}</label>`).join("");
+      document.getElementById("bar").appendChild(pop);
+      pop.querySelectorAll("input").forEach(x=>x.onchange=()=>{const i=+x.dataset.i; x.checked?hidden.delete(i):hidden.add(i); renderGrid();});
+    }
+
+    // ---------- filter builder (per engine) ----------
+    function renderFilter(){
+      const e=def().filter; let h="";
+      const fields = cols().map(c=>`<option>${c.n}</option>`).join("");
+      if(e==="document"||e==="vector"){
+        h=`<span class="fb-lbl">filter</span>
+           <span class="chip on">status = published <span class="x">×</span></span>
+           <select class="select sm"><option>field…</option>${fields}</select>
+           <select class="select sm"><option>=</option><option>≠</option><option>&gt;</option><option>&lt;</option><option>contains</option></select>
+           <input class="input sm" placeholder="value"><button class="btn sm">Add</button>`;
+        if(e==="vector") h+=`<span class="spacer"></span><span class="fb-lbl">similarity</span>
+           <input class="input sm" placeholder="[query vector] or doc id" style="width:170px">
+           <span class="fb-lbl">k</span><input class="input sm" value="10" style="width:46px"><button class="btn sm primary">Search</button>`;
+        else h+=`<span class="spacer"></span><button class="btn sm ghost">⌄ raw SQL</button>`;
+      } else if(e==="graph"){
+        h=`<span class="fb-lbl">traverse from</span><input class="input sm" value="'user:alice'" style="width:120px">
+           <span class="fb-lbl">depth</span><input class="input sm" value="2" style="width:42px">
+           <span class="fb-lbl">labels</span><span class="chip on">KNOWS</span><span class="chip on">FOLLOWS</span><span class="chip">WROTE</span>
+           <span class="spacer"></span><button class="btn sm primary">Traverse</button>`;
+      } else if(e==="timeseries"){
+        h=`<span class="fb-lbl">range</span><select class="select sm"><option>Last 1 hour</option><option>Last 15 min</option><option>Last 24h</option><option>custom…</option></select>
+           <span class="fb-lbl">tags</span><input class="input sm" placeholder="host=" style="width:90px"><input class="input sm" placeholder="metric=" style="width:90px">
+           <span class="fb-lbl">downsample</span><select class="select sm"><option>avg</option><option>max</option><option>p95</option></select>
+           <select class="select sm"><option>1m</option><option>5m</option><option>1h</option></select>
+           <span class="spacer"></span><span class="note">2.4M points · showing downsampled</span>`;
+      } else if(e==="kv"){
+        h=`<span class="fb-lbl">key prefix</span><input class="input sm" placeholder="session:" style="width:160px">
+           <select class="select sm"><option>prefix</option><option>glob</option><option>exact</option></select>
+           <span class="spacer"></span><button class="btn sm">Scan</button>`;
+      }
+      document.getElementById("filter").innerHTML=h;
+    }
+
+    // ---------- grid ----------
+    function sortedRows(){
+      const r=rows().slice();
+      if(sort.i!==null) r.sort((a,b)=>{ const x=a[sort.i],y=b[sort.i];
+        if(x===y)return 0; if(x==null)return 1; if(y==null)return -1;
+        return (x>y?1:-1)*sort.dir; });
+      return r;
+    }
+    function renderGrid(){
+      const cs=cols(), all=sortedRows(), total=all.length;
+      const slice=all.slice(page*PAGE,(page+1)*PAGE);
+      const head=cs.map((c,i)=> hidden.has(i)?"":
+        `<th data-i="${i}">${c.n}${sort.i===i?`<span class="ar">${sort.dir>0?"▲":"▼"}</span>`:""}</th>`).join("");
+      const body=slice.map((row,ri)=>{
+        const realIdx=page*PAGE+ri;
+        const cells=cs.map((c,i)=> hidden.has(i)?"":
+          `<td class="${c.cls||""}">${row[i]==null?NUL:(c.fmt?c.fmt(row[i]):row[i])}</td>`).join("");
+        return `<tr data-ri="${realIdx}" class="${realIdx===sel?"sel":""}">${cells}</tr>`;
+      }).join("");
+      document.getElementById("gridwrap").innerHTML=`<table class="grid mono"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+      document.querySelectorAll("#gridwrap th[data-i]").forEach(th=>th.onclick=()=>{
+        const i=+th.dataset.i; if(sort.i===i)sort.dir*=-1; else {sort.i=i;sort.dir=1;} renderGrid();});
+      document.querySelectorAll("#gridwrap tr[data-ri]").forEach(tr=>tr.onclick=()=>{sel=+tr.dataset.ri;mode="inspect";renderGrid();renderSide();});
+      // pager
+      const pages=Math.max(1,Math.ceil(total/PAGE));
+      document.getElementById("pager").innerHTML=
+        `<span>${total?page*PAGE+1:0}–${Math.min((page+1)*PAGE,total)} of ${total}</span>
+         <span class="spacer"></span>
+         <button class="btn sm ghost" id="pp">‹</button><span>page ${page+1}/${pages}</span><button class="btn sm ghost" id="pn">›</button>
+         <select class="select sm"><option>8 / page</option><option>25</option><option>100</option></select>`;
+      document.getElementById("pp").onclick=()=>{if(page>0){page--;renderGrid();}};
+      document.getElementById("pn").onclick=()=>{if(page<pages-1){page++;renderGrid();}};
+    }
+
+    // ---------- side panel (inspect / edit / add) ----------
+    function renderSide(){
+      const e=def().engine, cs=cols();
+      const blank=cs.map(()=> "");
+      const row = mode==="add" ? blank : (sortedRows()[sel]||blank);
+      const s=document.getElementById("side");
+      const title = mode==="add" ? (e==="timeseries"?"Append point":"New "+e+" row") : (e==="graph"?sub.slice(0,-1):e)+" · inspect";
+      let head=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><b>${title}</b>`;
+      if(mode==="inspect") head+=`<div class="row"><button class="btn sm" id="edit">Edit</button><button class="btn sm ghost" style="color:var(--err)">Delete</button></div>`;
+      else head+=`<div class="row"><button class="btn sm primary" id="save">Save</button><button class="btn sm ghost" id="cancel">Cancel</button></div>`;
+      head+=`</div>`;
+
+      let bodyHtml="";
+      const editing = mode!=="inspect";
+      if(e==="document" && mode==="inspect"){
+        bodyHtml=`<div class="jsontree">{
+  <span class="key">"id"</span>: <span class="s">"${row[0]}"</span>,
+  <span class="key">"title"</span>: <span class="s">"${row[1]||""}"</span>,
+  <span class="key">"status"</span>: <span class="s">"${row[2]||""}"</span>,
+  <span class="key">"author"</span>: <span class="s">"${row[3]||""}"</span>,
+  <span class="key">"views"</span>: <span class="n2">${row[4]||0}</span>,
+  <span class="key">"embedding"</span>: <span class="v-vec">[0.12, 0.98, … +382]</span>
+}</div>`;
+      } else {
+        bodyHtml = cs.map((c,i)=> editing
+          ? `<div class="fld"><label>${c.n}</label><input class="input" value="${(row[i]!=null&&typeof row[i]!=='object')?String(row[i]).replace(/<[^>]+>/g,''):''}" ${c.n==='embedding'?'placeholder="upload / paste 384-d vector" disabled':''}></div>`
+          : `<div class="kv"><span class="k">${c.n}</span><span class="v">${row[i]==null?NUL:(c.fmt&&c.n!=='value'?c.fmt(row[i]):String(row[i]).replace(/<[^>]+>/g,'')||row[i])}</span></div>`
+        ).join("");
+        if(editing && (e==="vector"||e==="document"))
+          bodyHtml+=`<h4 class="note" style="margin:14px 0 6px">metadata</h4>
+            <div class="kvedit"><input class="input sm" value="topic"><input class="input sm" value="indexing"><button class="btn sm ghost">×</button></div>
+            <button class="btn sm ghost">+ field</button>`;
+      }
+
+      let note="";
+      if(e==="timeseries") note=`<p class="note readnote">Timeseries is append-mostly — points aren't edited in place; use Append. Range/downsample handled server-side.</p>`;
+      if(e==="graph") note=`<p class="note readnote">Editing ${sub==='edges'?'an edge':'a node'} maps to GRAPH ${sub==='edges'?'INSERT/DELETE EDGE':'node upsert'}, not a tabular UPDATE.</p>`;
+      if(e==="vector") note=`<p class="note readnote">The embedding itself is immutable here; metadata is editable. Re-embedding = delete + insert.</p>`;
+      if(e==="kv") note=`<p class="note readnote">Value + TTL editable. Large values open in a side editor.</p>`;
+
+      s.innerHTML=head+bodyHtml+note;
+      const eb=document.getElementById("edit"); if(eb) eb.onclick=()=>{mode="edit";renderSide();};
+      const cb=document.getElementById("cancel"); if(cb) cb.onclick=()=>{mode="inspect";renderSide();};
+      const sb=document.getElementById("save"); if(sb) sb.onclick=()=>{mode="inspect";renderSide();};
+    }
+
+    function renderAll(){ renderTree(); renderBar(); renderFilter(); renderGrid(); renderSide(); }
+    renderAll();
+  })();
+  </script>
 </body></html>
