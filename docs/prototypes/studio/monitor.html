@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Monitor</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .mon { display:flex; flex-direction:column; min-height:0; }
+  .gauge { display:flex; align-items:center; gap:12px; margin-top:10px; }
+  .gauge .pct { font-size:22px; font-weight:700; }
+</style>
+</head>
+<body data-screen="monitor" data-title="Monitor">
+  <div class="mon">
+    <div class="toolbar">
+      <select class="select sm"><option>Last 15 minutes</option><option>Last 1 hour</option><option>Last 24 hours</option></select>
+      <select class="select sm"><option>Refresh 5s</option><option>Refresh 1s</option><option>Off</option></select>
+      <span class="chip on">● Live</span>
+      <span class="spacer"></span>
+      <span class="note">node origin-0 · region ap-southeast-1</span>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="mh">Queries / sec</div>
+        <div class="big num">3,420<small> /s</small></div>
+        <div class="delta up">▲ 12% vs prev</div>
+        <svg class="spark" id="sp1" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="metric span2">
+        <div class="mh">Query latency</div>
+        <div class="row" style="gap:22px;margin-top:4px">
+          <div><div class="big num" style="font-size:22px">2.1<small> ms</small></div><div class="note">p50</div></div>
+          <div><div class="big num" style="font-size:22px">8.4<small> ms</small></div><div class="note">p95</div></div>
+          <div><div class="big num" style="font-size:22px">22<small> ms</small></div><div class="note">p99</div></div>
+        </div>
+        <svg class="spark" id="sp2" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="metric">
+        <div class="mh">Active connections</div>
+        <div class="big num">47</div>
+        <div class="note">8 idle · 39 active</div>
+        <svg class="spark" id="sp3" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+      </div>
+
+      <div class="metric">
+        <div class="mh">CPU</div>
+        <div class="gauge"><span class="pct num">63%</span></div>
+        <div class="meter" style="margin-top:8px"><i style="width:63%;background:var(--warn)"></i></div>
+      </div>
+      <div class="metric">
+        <div class="mh">Memory</div>
+        <div class="gauge"><span class="pct num">11.2<span style="font-size:13px">/16 GB</span></span></div>
+        <div class="meter" style="margin-top:8px"><i style="width:70%"></i></div>
+      </div>
+      <div class="metric">
+        <div class="mh">CDC throughput</div>
+        <div class="big num">1,240<small> ev/s</small></div>
+        <div class="note">2 streams · 0 lag</div>
+        <svg class="spark" id="sp4" viewBox="0 0 200 46" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="metric">
+        <div class="mh">Cache hit rate</div>
+        <div class="big num">94.2%</div>
+        <div class="meter" style="margin-top:10px"><i style="width:94%;background:var(--ok)"></i></div>
+      </div>
+    </div>
+
+    <div class="wrap" style="padding-top:0">
+      <div class="panel">
+        <div class="ph"><h3>Active queries</h3><span class="spacer"></span><span class="note">4 running</span></div>
+        <table class="grid mono">
+          <thead><tr><th>pid</th><th>state</th><th>duration</th><th>rows</th><th>client</th><th>query</th></tr></thead>
+          <tbody>
+            <tr><td>4821</td><td><span class="dot warn"></span> running</td><td class="num">1.4 s</td><td class="num">—</td><td>10.0.2.7</td><td>GRAPH TRAVERSE FROM 'user:alice' DEPTH 4 …</td></tr>
+            <tr><td>4820</td><td><span class="dot ok"></span> running</td><td class="num">82 ms</td><td class="num">2,048</td><td>10.0.2.4</td><td>SELECT * FROM embeddings ORDER BY emb &lt;-&gt; $1 …</td></tr>
+            <tr><td>4814</td><td><span class="dot ok"></span> running</td><td class="num">11 ms</td><td class="num">512</td><td>10.0.2.4</td><td>SELECT date_trunc('m',ts), avg(v) FROM metrics …</td></tr>
+            <tr><td>4799</td><td><span class="dot"></span> idle in txn</td><td class="num">38 s</td><td class="num">—</td><td>10.0.9.1</td><td>BEGIN; UPDATE cache SET …</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const NS="http://www.w3.org/2000/svg";
+      function spark(id, color, base, amp){
+        const svg=document.getElementById(id); if(!svg) return;
+        const n=26, w=200, h=46; let d="", a=""; let y=base;
+        for(let i=0;i<n;i++){
+          y += (Math.random()-0.5)*amp; y=Math.max(6,Math.min(h-6,y));
+          const x=(i/(n-1))*w;
+          d += (i?` L${x.toFixed(1)} ${y.toFixed(1)}`:`M${x.toFixed(1)} ${y.toFixed(1)}`);
+        }
+        a = d + ` L${w} ${h} L0 ${h} Z`;
+        const fill=document.createElementNS(NS,"path");
+        fill.setAttribute("d",a); fill.setAttribute("fill",color); fill.setAttribute("opacity","0.14");
+        const line=document.createElementNS(NS,"path");
+        line.setAttribute("d",d); line.setAttribute("fill","none");
+        line.setAttribute("stroke",color); line.setAttribute("stroke-width","1.8");
+        svg.append(fill,line);
+      }
+      spark("sp1","var(--accent)",24,14);
+      spark("sp2","var(--eng-vector)",26,12);
+      spark("sp3","var(--ok)",20,8);
+      spark("sp4","var(--eng-timeseries)",22,16);
+    })();
+  </script>
+</body></html>

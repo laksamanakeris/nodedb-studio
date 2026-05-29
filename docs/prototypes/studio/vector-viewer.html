@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Vector Viewer</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .vv { display:grid; grid-template-rows:auto 1fr; height:100%; min-height:0; }
+  .vv-body { display:grid; grid-template-columns:1fr 280px; min-height:0; }
+  .vv-canvas { position:relative; overflow:hidden; }
+  .vv-insp { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
+  .vv-canvas .axis { stroke:var(--border-2); stroke-width:1; }
+  .vv-canvas .axlbl { fill:var(--text-faint); font:11px var(--mono); }
+</style>
+</head>
+<body data-screen="vectors" data-title="Vector Space Viewer">
+  <div class="vv">
+    <div class="toolbar">
+      <select class="select sm"><option>embeddings</option></select>
+      <select class="select sm"><option>title_embedding (384)</option><option>body_embedding (768)</option></select>
+      <span class="faint" style="font-size:11px">projection</span>
+      <span class="chip">PCA</span><span class="chip on">UMAP</span><span class="chip">t-SNE</span>
+      <span class="faint" style="font-size:11px">color</span>
+      <span class="chip on">cluster</span><span class="chip">metadata.topic</span>
+      <span class="spacer"></span>
+      <input class="input sm mono" placeholder="find nearest to vector…" style="width:170px">
+      <span class="note">5,000 sampled</span>
+    </div>
+
+    <div class="vv-body">
+      <div class="vv-canvas">
+        <svg id="scatter" class="canvas" viewBox="0 0 600 460" preserveAspectRatio="xMidYMid meet">
+          <line class="axis" x1="40" y1="420" x2="580" y2="420"/>
+          <line class="axis" x1="40" y1="40"  x2="40"  y2="420"/>
+          <text class="axlbl" x="560" y="438">dim 1</text>
+          <text class="axlbl" x="14" y="50">dim 2</text>
+        </svg>
+      </div>
+
+      <aside class="vv-insp">
+        <b>Selected point</b>
+        <div class="panel" style="margin-top:8px"><div class="pb">
+          <div class="kv"><span class="k">id</span><span class="v">01HQ8…K3</span></div>
+          <div class="kv"><span class="k">cluster</span><span class="v">#2 (vector)</span></div>
+          <div class="kv"><span class="k">distance to q</span><span class="v">0.0182</span></div>
+          <div class="kv"><span class="k">topic</span><span class="v">indexing</span></div>
+        </div></div>
+
+        <h4 class="note" style="margin:16px 0 8px">Clusters</h4>
+        <div class="legend" id="legend"></div>
+
+        <h4 class="note" style="margin:16px 0 8px">Nearest neighbors</h4>
+        <table class="grid mono" style="font-size:11.5px">
+          <tbody>
+            <tr><td>01HQ7…M9</td><td class="num v-num">0.041</td></tr>
+            <tr><td>01HQ6…A1</td><td class="num v-num">0.073</td></tr>
+            <tr><td>01HQ5…X7</td><td class="num v-num">0.095</td></tr>
+          </tbody>
+        </table>
+        <p class="note" style="margin-top:14px">Projection runs client-side (PCA/UMAP/t-SNE) over sampled vectors — NodeDB has no server-side projection op.</p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // generate clustered scatter points (mock UMAP projection)
+    (function(){
+      const svg = document.getElementById("scatter");
+      const NS = "http://www.w3.org/2000/svg";
+      const clusters = [
+        { c:[170,150], col:"var(--eng-vector)",     n:42, name:"#2 indexing" },
+        { c:[420,160], col:"var(--eng-document)",   n:38, name:"#1 storage" },
+        { c:[300,330], col:"var(--eng-timeseries)", n:34, name:"#3 telemetry" },
+        { c:[470,330], col:"var(--eng-kv)",         n:26, name:"#4 caching" },
+      ];
+      const gauss = () => (Math.random()+Math.random()+Math.random()-1.5);
+      clusters.forEach(cl => {
+        for (let i=0;i<cl.n;i++){
+          const x = cl.c[0] + gauss()*46, y = cl.c[1] + gauss()*40;
+          const c = document.createElementNS(NS,"circle");
+          c.setAttribute("cx",x); c.setAttribute("cy",y); c.setAttribute("r",4.2);
+          c.setAttribute("fill",cl.col); c.setAttribute("opacity","0.78");
+          svg.appendChild(c);
+        }
+      });
+      // the query point + a selected/highlighted neighbor
+      const q = document.createElementNS(NS,"circle");
+      q.setAttribute("cx",172); q.setAttribute("cy",148); q.setAttribute("r",7);
+      q.setAttribute("fill","none"); q.setAttribute("stroke","var(--accent)"); q.setAttribute("stroke-width","3");
+      svg.appendChild(q);
+      // legend
+      const lg = document.getElementById("legend");
+      lg.innerHTML = clusters.map(cl =>
+        `<div class="li"><span class="sw" style="background:${cl.col}"></span>${cl.name}</div>`).join("");
+    })();
+  </script>
+</body></html>

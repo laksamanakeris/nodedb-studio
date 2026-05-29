@@ -1,0 +1,84 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Collections</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .col { display:grid; grid-template-columns:1fr 320px; height:100%; min-height:0; }
+  .col-main { display:grid; grid-template-rows:auto 1fr; min-height:0; }
+  .col-insp { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
+  .insp-tabs { display:flex; gap:4px; margin-bottom:14px; }
+  .danger { margin-top:18px; border:1px solid var(--err); border-radius:10px; padding:12px; background:var(--err-soft); }
+  .dropped { padding:14px 16px; border-top:1px solid var(--border); }
+</style>
+</head>
+<body data-screen="collections" data-title="Collections">
+  <div class="col">
+    <div class="col-main">
+      <div class="toolbar">
+        <div class="row">
+          <span class="chip on">All</span><span class="chip">vector</span><span class="chip">graph</span>
+          <span class="chip">document</span><span class="chip">timeseries</span><span class="chip">kv</span>
+        </div>
+        <span class="spacer"></span>
+        <input class="input" placeholder="Search collections…" style="width:180px">
+        <button class="btn primary">+ Create collection</button>
+      </div>
+
+      <div style="overflow:auto;min-height:0">
+        <table class="grid">
+          <thead><tr><th>name</th><th>engine</th><th>rows</th><th>size</th><th>indexes</th><th>created</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td>embeddings</td><td><span class="eng eng-vector">vector</span></td><td class="num">48,210</td><td>312 MB</td><td>HNSW (cos)</td><td>2026-04-02</td></tr>
+            <tr><td>articles</td><td><span class="eng eng-document">document</span></td><td class="num">1,284</td><td>18 MB</td><td>FTS(title,body)</td><td>2026-03-11</td></tr>
+            <tr><td>social</td><td><span class="eng eng-graph">graph</span></td><td class="num">23,004</td><td>44 MB</td><td>CSR</td><td>2026-03-11</td></tr>
+            <tr><td>metrics</td><td><span class="eng eng-timeseries">timeseries</span></td><td class="num">2,401,883</td><td>1.2 GB</td><td>Gorilla</td><td>2026-02-20</td></tr>
+            <tr><td>cache</td><td><span class="eng eng-kv">kv</span></td><td class="num">9,142</td><td>6 MB</td><td>—</td><td>2026-02-20</td></tr>
+            <tr><td>sales</td><td><span class="eng eng-columnar">columnar</span></td><td class="num">512,008</td><td>88 MB</td><td>ALP, FSST</td><td>2026-01-30</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dropped">
+        <div class="row" style="justify-content:space-between">
+          <span class="muted">⌫ Dropped collections (within retention)</span>
+          <span class="note">2 recoverable</span>
+        </div>
+        <div class="row" style="margin-top:8px;gap:14px">
+          <div class="row"><span class="faint">old_embeddings</span><button class="btn sm">Undrop</button><span class="note">expires in 5d</span></div>
+          <div class="row"><span class="faint">temp_events</span><button class="btn sm">Undrop</button><span class="note">expires in 18h</span></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="col-insp">
+      <div class="insp-tabs"><span class="chip on">Inspect</span><span class="chip">Create</span><span class="chip">Alter</span></div>
+      <div class="row" style="gap:9px;margin-bottom:6px">
+        <span class="eng eng-vector" style="font-size:14px;font-weight:700">embeddings</span>
+      </div>
+      <p class="note" style="margin-top:0">vector · created 2026-04-02 · owner app</p>
+
+      <div class="panel" style="margin-top:8px"><div class="pb">
+        <div class="kv"><span class="k">rows</span><span class="v">48,210</span></div>
+        <div class="kv"><span class="k">dimension</span><span class="v">384</span></div>
+        <div class="kv"><span class="k">metric</span><span class="v">cosine</span></div>
+        <div class="kv"><span class="k">index</span><span class="v">HNSW (m=16, ef=200)</span></div>
+        <div class="kv"><span class="k">size on disk</span><span class="v">312 MB</span></div>
+        <div class="kv"><span class="k">bitemporal</span><span class="v">false</span></div>
+      </div></div>
+
+      <h4 class="note" style="margin:16px 0 6px">Named vector fields</h4>
+      <div class="kv"><span class="k">title_embedding</span><span class="v">384 · HNSW</span></div>
+      <div class="kv"><span class="k">body_embedding</span><span class="v">768 · HNSW</span></div>
+
+      <div class="danger">
+        <b style="color:var(--err)">Danger zone</b>
+        <div class="row" style="margin-top:9px;gap:8px">
+          <button class="btn sm">Drop (soft)</button>
+          <button class="btn sm" style="border-color:var(--err);color:var(--err)">Drop PURGE</button>
+        </div>
+        <p class="note" style="margin:8px 0 0">PURGE bypasses retention — unrecoverable, admin only.</p>
+      </div>
+    </aside>
+  </div>
+</body></html>

@@ -1,0 +1,99 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Graph Explorer</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .gx { display:grid; grid-template-rows:auto 1fr; height:100%; min-height:0; }
+  .gx-body { display:grid; grid-template-columns:1fr 280px; min-height:0; }
+  .gx-canvas { position:relative; overflow:hidden; }
+  .gx-insp { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
+  .e-knows  { stroke:var(--eng-graph); }
+  .e-follows{ stroke:var(--eng-timeseries); }
+  .e-wrote  { stroke:var(--eng-document); stroke-dasharray:4 3; }
+  .edge { stroke-width:1.6; opacity:.55; }
+  .node circle { stroke:var(--bg); stroke-width:2; }
+  .node text { font:600 11px var(--sans); fill:var(--text); }
+  .n-person { fill:var(--eng-graph); } .n-article { fill:var(--eng-document); }
+  .node.sel circle { stroke:var(--accent); stroke-width:3.5; }
+  input[type=range]{accent-color:var(--accent);}
+</style>
+</head>
+<body data-screen="graph" data-title="Graph Explorer">
+  <div class="gx">
+    <div class="toolbar">
+      <span class="faint mono" style="font-size:12px">GRAPH TRAVERSE FROM</span>
+      <input class="input mono" value="'user:alice'" style="width:130px">
+      <span class="faint mono" style="font-size:12px">DEPTH</span>
+      <input type="range" min="1" max="4" value="2" style="width:90px">
+      <span class="chip on">KNOWS</span><span class="chip on">FOLLOWS</span><span class="chip">WROTE</span>
+      <span class="spacer"></span>
+      <span class="chip">PageRank</span>
+      <select class="select sm"><option>Force-directed</option><option>Radial</option><option>Hierarchical</option></select>
+      <button class="btn primary sm">▶ Traverse</button>
+    </div>
+
+    <div class="gx-body">
+      <div class="gx-canvas">
+        <svg class="canvas" viewBox="0 0 900 620" preserveAspectRatio="xMidYMid meet">
+          <g>
+            <line class="edge e-knows"   x1="450" y1="310" x2="300" y2="180"/>
+            <line class="edge e-knows"   x1="450" y1="310" x2="620" y2="200"/>
+            <line class="edge e-knows"   x1="450" y1="310" x2="250" y2="420"/>
+            <line class="edge e-knows"   x1="450" y1="310" x2="180" y2="290"/>
+            <line class="edge e-knows"   x1="300" y1="180" x2="200" y2="170"/>
+            <line class="edge e-follows" x1="300" y1="180" x2="640" y2="440"/>
+            <line class="edge e-follows" x1="620" y1="200" x2="760" y2="320"/>
+            <line class="edge e-knows"   x1="620" y1="200" x2="720" y2="160"/>
+            <line class="edge e-knows"   x1="250" y1="420" x2="380" y2="500"/>
+            <line class="edge e-knows"   x1="250" y1="420" x2="180" y2="290"/>
+            <line class="edge e-follows" x1="760" y1="320" x2="640" y2="440"/>
+            <line class="edge e-wrote"   x1="450" y1="310" x2="480" y2="150"/>
+            <line class="edge e-wrote"   x1="450" y1="310" x2="560" y2="470"/>
+          </g>
+          <g>
+            <g class="node sel"><circle class="n-person" cx="450" cy="310" r="26"/><text x="450" y="350" text-anchor="middle">alice</text></g>
+            <g class="node"><circle class="n-person" cx="300" cy="180" r="17"/><text x="300" y="212" text-anchor="middle">bob</text></g>
+            <g class="node"><circle class="n-person" cx="620" cy="200" r="18"/><text x="620" y="233" text-anchor="middle">carol</text></g>
+            <g class="node"><circle class="n-person" cx="250" cy="420" r="15"/><text x="250" y="450" text-anchor="middle">dave</text></g>
+            <g class="node"><circle class="n-person" cx="180" cy="290" r="12"/><text x="180" y="316" text-anchor="middle">frank</text></g>
+            <g class="node"><circle class="n-person" cx="200" cy="170" r="11"/><text x="200" y="195" text-anchor="middle">judy</text></g>
+            <g class="node"><circle class="n-person" cx="640" cy="440" r="14"/><text x="640" y="470" text-anchor="middle">erin</text></g>
+            <g class="node"><circle class="n-person" cx="760" cy="320" r="14"/><text x="760" y="350" text-anchor="middle">grace</text></g>
+            <g class="node"><circle class="n-person" cx="720" cy="160" r="11"/><text x="720" y="185" text-anchor="middle">ivan</text></g>
+            <g class="node"><circle class="n-person" cx="380" cy="500" r="11"/><text x="380" y="525" text-anchor="middle">heidi</text></g>
+            <g class="node"><circle class="n-article" cx="480" cy="150" r="13"/><text x="480" y="178" text-anchor="middle">article:42</text></g>
+            <g class="node"><circle class="n-article" cx="560" cy="470" r="12"/><text x="560" y="497" text-anchor="middle">article:88</text></g>
+          </g>
+        </svg>
+      </div>
+
+      <aside class="gx-insp">
+        <b>Selected node</b>
+        <div class="panel" style="margin-top:8px"><div class="pb">
+          <div class="kv"><span class="k">id</span><span class="v">user:alice</span></div>
+          <div class="kv"><span class="k">type</span><span class="v">person</span></div>
+          <div class="kv"><span class="k">degree</span><span class="v">6</span></div>
+          <div class="kv"><span class="k">pagerank</span><span class="v">0.142</span></div>
+          <div class="kv"><span class="k">name</span><span class="v">Alice Tan</span></div>
+        </div></div>
+
+        <h4 class="note" style="margin:16px 0 8px">Legend</h4>
+        <div class="legend">
+          <div class="li"><span class="sw" style="background:var(--eng-graph)"></span>KNOWS</div>
+          <div class="li"><span class="sw" style="background:var(--eng-timeseries)"></span>FOLLOWS</div>
+          <div class="li"><span class="sw" style="background:var(--eng-document)"></span>WROTE</div>
+          <div class="li"><span class="sw" style="border-radius:50%;background:var(--eng-graph)"></span>person</div>
+          <div class="li"><span class="sw" style="border-radius:50%;background:var(--eng-document)"></span>article</div>
+        </div>
+
+        <h4 class="note" style="margin:16px 0 8px">Traversal stats</h4>
+        <div class="kv"><span class="k">nodes</span><span class="v">14</span></div>
+        <div class="kv"><span class="k">edges</span><span class="v">23</span></div>
+        <div class="kv"><span class="k">labels</span><span class="v">3</span></div>
+        <div class="kv"><span class="k">max depth</span><span class="v">2</span></div>
+        <div class="kv"><span class="k">elapsed</span><span class="v">0.9 ms</span></div>
+      </aside>
+    </div>
+  </div>
+</body></html>

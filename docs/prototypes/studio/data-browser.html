@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Data Browser</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .db { display:grid; grid-template-columns:212px 1fr 300px; height:100%; min-height:0; }
+  .db-tree { background:var(--bg-side); border-right:1px solid var(--border); overflow:auto; padding:8px; }
+  .db-tree .g { padding:11px 8px 4px; font-size:10px; letter-spacing:.7px; text-transform:uppercase; color:var(--text-faint);
+     display:flex; align-items:center; gap:6px; }
+  .db-tree .c { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:6px; cursor:pointer; color:var(--text-dim); }
+  .db-tree .c:hover { background:var(--row-hover); color:var(--text); }
+  .db-tree .c.sel { background:var(--accent-soft); color:var(--accent-2); }
+  .db-tree .c .n { margin-left:auto; font-size:10.5px; color:var(--text-faint); }
+  .db-main { display:grid; grid-template-rows:auto 1fr; min-height:0; min-width:0; }
+  .db-doc { background:var(--bg-elev); border-left:1px solid var(--border); overflow:auto; padding:16px; }
+  .jsontree { font-family:var(--mono); font-size:12px; line-height:1.7; }
+  .jsontree .key { color:var(--accent-2); } .jsontree .s { color:#9ad27f; } .jsontree .n2 { color:#7cc7ff; }
+  :root[data-theme="light"] .jsontree .s{color:#2f7d32;} :root[data-theme="light"] .jsontree .n2{color:#1d6fd6;}
+  .filterbar { display:flex; align-items:center; gap:8px; padding:9px 14px; border-bottom:1px solid var(--border); }
+  .filterbar .input { flex:1; font-family:var(--mono); font-size:12px; }
+</style>
+</head>
+<body data-screen="data" data-title="Data Browser">
+  <div class="db">
+    <aside class="db-tree">
+      <div class="g"><span class="eng eng-document"></span>Documents</div>
+      <div class="c sel">▦ articles <span class="n">1,284</span></div>
+      <div class="c">▦ users <span class="n">512</span></div>
+      <div class="g"><span class="eng eng-vector"></span>Vector</div>
+      <div class="c">⬡ embeddings <span class="n">48k</span></div>
+      <div class="g"><span class="eng eng-graph"></span>Graph</div>
+      <div class="c">⬡ social <span class="n">23k</span></div>
+      <div class="g"><span class="eng eng-kv"></span>Key-Value</div>
+      <div class="c">⬡ cache <span class="n">9.1k</span></div>
+      <div class="g"><span class="eng eng-timeseries"></span>Timeseries</div>
+      <div class="c">⬡ metrics <span class="n">2.4M</span></div>
+    </aside>
+
+    <div class="db-main">
+      <div class="toolbar" style="border-bottom:0;padding-bottom:0">
+        <span class="eng eng-document" style="font-size:12.5px">articles · document</span>
+        <span class="spacer"></span>
+        <div class="row">
+          <span class="chip on">Table</span><span class="chip">JSON</span><span class="chip">Document</span>
+        </div>
+        <button class="btn sm">+ Add row</button>
+        <button class="btn sm ghost">⟳</button>
+      </div>
+      <div class="filterbar">
+        <span class="faint mono" style="font-size:12px">WHERE</span>
+        <input class="input" value="metadata->>'status' = 'published' AND created_at > now() - '7d'">
+        <button class="btn sm primary">Apply</button>
+      </div>
+      <div style="overflow:auto;min-height:0">
+        <table class="grid mono">
+          <thead><tr><th>id</th><th>title</th><th>status</th><th>author</th><th>views</th><th>created_at</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td>01HQ8…K3</td><td>Vector indexes explained</td><td>published</td><td>user:alice</td><td class="num v-num">14,203</td><td>2026-05-21T09:14:22Z</td></tr>
+            <tr><td>01HQ7…M9</td><td>Graph traversal at scale</td><td>published</td><td>user:bob</td><td class="num v-num">8,910</td><td>2026-05-19T17:02:10Z</td></tr>
+            <tr><td>01HQ6…A1</td><td>CRDT sync internals</td><td>published</td><td>user:carol</td><td class="num v-num">5,221</td><td>2026-05-18T11:48:55Z</td></tr>
+            <tr><td>01HQ5…X7</td><td>Columnar compression</td><td>draft</td><td>user:alice</td><td class="num v-num">0</td><td>2026-05-15T08:30:00Z</td></tr>
+            <tr><td>01HQ3…F8</td><td>Spatial joins primer</td><td>published</td><td>user:dave</td><td class="num v-num">3,477</td><td>2026-05-12T22:05:41Z</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <aside class="db-doc">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <b>Document</b>
+        <div class="row"><button class="btn sm">Edit</button><button class="btn sm ghost" style="color:var(--err)">Delete</button></div>
+      </div>
+      <div class="jsontree">{
+  <span class="key">"id"</span>: <span class="s">"01HQ8…K3"</span>,
+  <span class="key">"title"</span>: <span class="s">"Vector indexes explained"</span>,
+  <span class="key">"status"</span>: <span class="s">"published"</span>,
+  <span class="key">"author"</span>: <span class="s">"user:alice"</span>,
+  <span class="key">"views"</span>: <span class="n2">14203</span>,
+  <span class="key">"metadata"</span>: {
+    <span class="key">"tags"</span>: [<span class="s">"hnsw"</span>, <span class="s">"ann"</span>],
+    <span class="key">"reading_min"</span>: <span class="n2">7</span>
+  },
+  <span class="key">"embedding"</span>: <span class="v-vec">[0.12, 0.98, … +382]</span>,
+  <span class="key">"created_at"</span>: <span class="s">"2026-05-21T09:14:22Z"</span>
+}</div>
+      <p class="note" style="margin-top:14px">Editor adapts per engine: vector rows show the embedding + metadata editor; KV shows key/value; timeseries shows time/tags/value.</p>
+    </aside>
+  </div>
+</body></html>

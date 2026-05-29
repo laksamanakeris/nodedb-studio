@@ -1,0 +1,49 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Connections</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+</head>
+<body data-screen="connections" data-title="Connections">
+  <div class="wrap">
+    <h2 class="sec">Connections</h2>
+    <p class="sub">Open a NodeDB instance. Saved connections live here; passwords are kept in the OS keychain. Switch active connection anytime from the sidebar.</p>
+
+    <div class="cards" style="padding:0">
+      <a class="conn-card" href="query-editor.html">
+        <div class="top"><div class="ico" style="background:#10b981">L</div>
+          <div><h3>local-lite</h3><div class="host">localhost:5432 · app</div></div></div>
+        <div class="engs">
+          <span class="eng eng-vector">vector</span><span class="eng eng-graph">graph</span>
+          <span class="eng eng-document">document</span><span class="eng eng-kv">kv</span>
+        </div>
+        <div class="foot"><span class="dot ok"></span> connected · last used 2m ago</div>
+      </a>
+
+      <a class="conn-card" href="query-editor.html">
+        <div class="top"><div class="ico" style="background:#f59e0b">S</div>
+          <div><h3>staging-origin</h3><div class="host">stg.nodedb.dev:5432 · app</div></div></div>
+        <div class="engs">
+          <span class="eng eng-vector">vector</span><span class="eng eng-graph">graph</span>
+          <span class="eng eng-document">document</span><span class="eng eng-fts">fts</span>
+          <span class="eng eng-columnar">columnar</span><span class="eng eng-timeseries">timeseries</span>
+        </div>
+        <div class="foot"><span class="dot ok"></span> connected · last used 1h ago</div>
+      </a>
+
+      <a class="conn-card" href="query-editor.html">
+        <div class="top"><div class="ico" style="background:#ef4444">P</div>
+          <div><h3>prod-origin</h3><div class="host">db.nodedb.dev:5432 · readonly</div></div></div>
+        <div class="engs">
+          <span class="eng eng-vector">vector</span><span class="eng eng-graph">graph</span>
+          <span class="eng eng-document">document</span><span class="eng eng-fts">fts</span>
+          <span class="eng eng-columnar">columnar</span><span class="eng eng-timeseries">timeseries</span>
+          <span class="eng eng-array">array</span>
+        </div>
+        <div class="foot"><span class="dot"></span> disconnected · TLS required</div>
+      </a>
+
+      <div class="conn-card add"><div style="text-align:center"><div class="plus">+</div><div>New connection</div></div></div>
+    </div>
+  </div>
+</body></html>

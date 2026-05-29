@@ -1,0 +1,102 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeDB Studio — Sync Dashboard</title>
+<link rel="stylesheet" href="studio.css">
+<script src="shell.js"></script>
+<style>
+  .sy { padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .sy-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .sy-grid { display:grid; grid-template-columns:1fr 360px; gap:14px; align-items:start; }
+  .conflict { border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; }
+  .conflict .vs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:9px 0; }
+  .conflict .side { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-family:var(--mono); font-size:11.5px; }
+  .conflict .side.local { border-left:3px solid var(--accent); }
+  .conflict .side.remote { border-left:3px solid var(--eng-timeseries); }
+  .flow .dev { fill:var(--bg); stroke:var(--border-2); }
+  .flow text { fill:var(--text); font:600 11px var(--sans); }
+  .flow .arr { stroke:var(--accent); stroke-width:1.8; marker-end:url(#ah); opacity:.7; }
+</style>
+</head>
+<body data-screen="sync" data-title="Sync Dashboard">
+  <div class="sy">
+    <div class="note">⚠ Mostly invented — CRDT sync has few reference UIs. Depends on server sync/CRDT APIs that aren't in the client yet (needs an availability spike).</div>
+
+    <div class="sy-cards">
+      <div class="metric"><div class="mh">Sync health</div><div class="big" style="color:var(--ok)">Healthy</div><div class="note">all peers converged</div></div>
+      <div class="metric"><div class="mh">Last sync</div><div class="big num">3<small> s ago</small></div><div class="note">auto · every 5s</div></div>
+      <div class="metric"><div class="mh">Pending deltas</div><div class="big num">142</div><div class="note">↑ 88 out · ↓ 54 in</div></div>
+      <div class="metric"><div class="mh">Throughput</div><div class="big num">1.2k<small> Δ/s</small></div><div class="note">CRDT (Loro)</div></div>
+    </div>
+
+    <div class="sy-grid">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel">
+          <div class="ph"><h3>Devices &amp; peers</h3><span class="spacer"></span><span class="note">4 connected</span></div>
+          <table class="grid">
+            <thead><tr><th>device</th><th>type</th><th>last seen</th><th>pending</th><th>status</th></tr></thead>
+            <tbody>
+              <tr><td>origin-cluster</td><td>server</td><td>now</td><td class="num">0</td><td><span class="dot ok"></span> live</td></tr>
+              <tr><td>alice-macbook</td><td>desktop</td><td>3s ago</td><td class="num">12</td><td><span class="dot ok"></span> syncing</td></tr>
+              <tr><td>alice-iphone</td><td>mobile (Lite)</td><td>1m ago</td><td class="num">88</td><td><span class="dot warn"></span> behind</td></tr>
+              <tr><td>field-tablet-07</td><td>mobile (Lite)</td><td>4h ago</td><td class="num">1,204</td><td><span class="dot err"></span> offline</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel">
+          <div class="ph"><h3>Pending delta queue</h3></div>
+          <table class="grid mono">
+            <thead><tr><th>collection</th><th>ops</th><th>bytes</th><th>oldest</th></tr></thead>
+            <tbody>
+              <tr><td>articles</td><td class="num">54</td><td class="num">18 KB</td><td>2s</td></tr>
+              <tr><td>embeddings</td><td class="num">31</td><td class="num">240 KB</td><td>3s</td></tr>
+              <tr><td>social</td><td class="num">9</td><td class="num">2 KB</td><td>5s</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="panel">
+          <div class="ph"><h3>Conflicts</h3><span class="spacer"></span><span class="badge cap-on" style="color:var(--warn);background:var(--warn-soft)">1 needs review</span></div>
+          <div class="pb">
+            <div class="conflict">
+              <div class="row" style="justify-content:space-between">
+                <b class="mono" style="font-size:12px">articles / 01HQ8…K3</b>
+                <span class="note">field: title</span>
+              </div>
+              <div class="vs">
+                <div class="side local"><div class="note">local · 09:14:22</div>"Vector indexes explained"</div>
+                <div class="side remote"><div class="note">remote · 09:14:25</div>"Vector indexes, explained"</div>
+              </div>
+              <div class="row" style="gap:7px">
+                <button class="btn sm primary">Keep local</button>
+                <button class="btn sm">Keep remote</button>
+                <button class="btn sm ghost">Merge…</button>
+              </div>
+            </div>
+            <p class="note" style="margin:0">Register fields use LWW automatically; text/list fields with concurrent edits surface here for review.</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="ph"><h3>Delta flow</h3></div>
+          <div class="pb">
+            <svg class="flow" viewBox="0 0 320 150" style="width:100%">
+              <defs><marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+                <path d="M0 0 L6 3 L0 6 Z" fill="var(--accent)"/></marker></defs>
+              <rect class="dev" x="120" y="58" width="80" height="34" rx="8"/><text x="160" y="79" text-anchor="middle">Origin</text>
+              <rect class="dev" x="10" y="10" width="80" height="30" rx="8"/><text x="50" y="29" text-anchor="middle">macbook</text>
+              <rect class="dev" x="10" y="108" width="80" height="30" rx="8"/><text x="50" y="127" text-anchor="middle">iphone</text>
+              <rect class="dev" x="232" y="58" width="80" height="34" rx="8"/><text x="272" y="79" text-anchor="middle">tablet</text>
+              <line class="arr" x1="92" y1="26" x2="120" y2="62"/>
+              <line class="arr" x1="92" y1="122" x2="120" y2="86"/>
+              <line class="arr" x1="200" y1="75" x2="230" y2="75" style="stroke:var(--err);opacity:.5"/>
+            </svg>
+            <p class="note" style="margin:6px 0 0">tablet offline — 1,204 deltas queued for replay on reconnect.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body></html>
