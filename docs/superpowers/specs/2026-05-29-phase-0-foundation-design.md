@@ -135,6 +135,34 @@ struct ConnectionProfile {
 5. `Ok(QueryResult)` → result signal → `grid.rs` renders rows (or
    `rows_affected`). `Err(NodeDbError)` → error signal → inline error panel.
 
+```mermaid
+sequenceDiagram
+    actor User
+    participant Conn as connections.rs
+    participant Mgr as ConnectionManager
+    participant KR as keyring
+    participant DB as NodeDbRemote
+    participant SQL as sql_panel.rs
+    participant Grid as grid.rs
+
+    User->>Conn: select / add profile, Connect
+    Conn->>Mgr: connect(id)
+    Mgr->>KR: get_password(id)
+    KR-->>Mgr: password
+    Mgr->>DB: NodeDbRemote::connect(conn_string)
+    DB-->>Mgr: Arc<dyn NodeDb> + handshake
+    Mgr-->>Conn: active set, CapsView captured
+    User->>SQL: type SQL, Run
+    SQL->>DB: execute_sql(sql, &[])
+    alt Ok(QueryResult)
+        DB-->>SQL: columns + rows
+        SQL->>Grid: render rows / rows_affected
+    else Err(NodeDbError)
+        DB-->>SQL: error (SQLSTATE detail)
+        SQL-->>User: inline error panel
+    end
+```
+
 ## Error handling
 
 - `NodeDbError` is the result type throughout — no custom error layer in Phase 0.

@@ -29,25 +29,17 @@ any non-pgwire transport.
 
 ## 2. System context
 
-```
-┌──────────────────────────────────────────────┐
-│              NodeDB Studio (desktop)           │
-│                                                │
-│   Dioxus UI  ──►  App state  ──►  NodeDb trait │
-│                                       │        │
-│                                  NodeDbRemote  │
-│                                  (pgwire/TCP)  │
-└───────────────────────────────────────┼───────┘
-                                         │  PostgreSQL wire protocol
-                                         ▼
-                              ┌────────────────────┐
-                              │   NodeDB Origin     │
-                              │  8 engines, 1 SQL   │
-                              │  vector · graph ·   │
-                              │  document · columnar│
-                              │  timeseries · KV ·  │
-                              │  FTS · array        │
-                              └────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Studio["NodeDB Studio (desktop)"]
+        UI[Dioxus UI] --> State[App state]
+        State --> Trait[NodeDb trait]
+        Trait --> Remote[NodeDbRemote]
+    end
+    Remote -->|PostgreSQL wire protocol / TCP| Engines
+    subgraph Origin["NodeDB Origin"]
+        Engines["8 engines, 1 SQL dialect<br/>vector · graph · document · columnar<br/>timeseries · KV · FTS · array"]
+    end
 ```
 
 Studio depends on two crates from the sibling `nodedb` workspace:
@@ -93,22 +85,13 @@ architecture below assumes the desktop target.
 
 ## 4. High-level architecture (layers)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Presentation        Dioxus components, routes, layout         │
-│                     shell · sql_panel · grid · connections    │
-│                     (later) graph_explorer · vector_viewer …  │
-├─────────────────────────────────────────────────────────────┤
-│ Application state   Signals + context. View-models:           │
-│                     CapsView, result/error signals, active Db │
-├─────────────────────────────────────────────────────────────┤
-│ Connection/session  ConnectionManager: profiles, live handles,│
-│                     active selection. Persistence (config +   │
-│                     keyring).                                  │
-├─────────────────────────────────────────────────────────────┤
-│ Data access         NodeDb trait → NodeDbRemote (pgwire).      │
-│                     Typed ops + execute_sql. nodedb-types.     │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    P["<b>Presentation</b><br/>Dioxus components, routes, layout<br/>shell · sql_panel · grid · connections · (later) graph_explorer · vector_viewer …"]
+    A["<b>Application state</b><br/>Signals + context · view-models (CapsView, result/error signals, active Db)"]
+    C["<b>Connection / session</b><br/>ConnectionManager: profiles · live handles · active selection · persistence (config + keyring)"]
+    D["<b>Data access</b><br/>NodeDb trait → NodeDbRemote (pgwire) · typed ops + execute_sql · nodedb-types"]
+    P --> A --> C --> D
 ```
 
 Dependencies point downward only. Presentation reads state; state calls the
@@ -162,6 +145,22 @@ ConnectionManager
   `CapsView`.
 - Multi-connection: many profiles, many live handles, one active at a time,
   switchable from the sidebar.
+
+Per-connection lifecycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Saved: add profile
+    Saved --> Connecting: connect(id)
+    Connecting --> Live: handshake ok
+    Connecting --> Failed: error
+    Failed --> Connecting: retry
+    Live --> Active: set_active(id)
+    Active --> Live: switch away
+    Live --> Saved: disconnect
+    Active --> Saved: disconnect
+    Saved --> [*]: remove profile
+```
 
 ### 5.4 Data access
 

@@ -43,6 +43,21 @@ From `nodedb-client` (the `NodeDb` trait + `NodeDbRemote`) and `nodedb-types`:
 
 ## Phases
 
+```mermaid
+flowchart LR
+    P0["<b>Phase 0</b><br/>Foundation<br/>shell · multi-connection<br/>async bridge · result grid<br/>capability gating"]
+    P1["<b>Phase 1</b><br/>Core usable tool<br/>query editor · collection mgmt<br/>data browser"]
+    P2["<b>Phase 2</b><br/>Visualizers<br/>graph explorer · vector viewer"]
+    P3["<b>Phase 3</b><br/>Dashboards*<br/>monitor · sync"]
+    P0 --> P1
+    P0 --> P2
+    P0 --> P3
+    P1 -. recommended order .-> P2
+    P2 -. recommended order .-> P3
+```
+
+\* Phase 3 is gated by an API-availability spike (see the phase note).
+
 ### Phase 0 — Foundation (everything depends on this)
 
 App shell + routing, **connection manager (multi-connection)**, async bridge
