@@ -160,7 +160,11 @@
     };
 
     // ---------- state ----------
-    let cur="articles", sub="nodes", sort={i:null,dir:1}, page=0, sel=0, mode="inspect", hidden=new Set();
+    const _qp = new URLSearchParams(location.search);
+    const _ok = {articles:1,users:1,embeddings:1,social:1,cache:1,metrics:1};
+    let cur = _ok[_qp.get("coll")] ? _qp.get("coll") : "articles";
+    let sub = _qp.get("sub")==="edges" ? "edges" : "nodes";
+    let sort={i:null,dir:1}, page=0, sel=0, mode="inspect", hidden=new Set();
     const PAGE=8;
 
     const def = ()=>DB[cur];
