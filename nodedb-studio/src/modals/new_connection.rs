@@ -11,7 +11,6 @@ use crate::state::ui::ModalKind;
 #[component]
 pub fn NewConnectionForm() -> Element {
     let mut modal = use_context::<Signal<Option<ModalKind>>>();
-    let mut close = move |_| modal.set(None);
     rsx! {
         div { class: "modal-body",
             div { class: "form-field",
@@ -36,10 +35,10 @@ pub fn NewConnectionForm() -> Element {
             }
         }
         div { class: "modal-footer",
-            button { class: "btn ghost", onclick: move |e| close(e), "Cancel" }
+            button { class: "btn ghost", onclick: move |_| modal.set(None), "Cancel" }
             button { class: "btn", "Test" }
             button { class: "btn", "Save" }
-            button { class: "btn primary", onclick: move |e| close(e), "Save & connect" }
+            button { class: "btn primary", onclick: move |_| modal.set(None), "Save & connect" }
         }
     }
 }
